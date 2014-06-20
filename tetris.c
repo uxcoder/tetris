@@ -3,19 +3,66 @@
  *
  */
 
+#ifdef __APPLE__
 #include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 #include <OpenGL/OpenGL.h>
 #include <stdlib.h>
-#include <time.h>
+#include <sys/time.h>
+#include <stdbool.h>
+
 #include "tetris.h"
 
+struct block {
+	int shape;
+	int x;
+	int y;
+	int angle;
+};
 
-int angle = 0;
+static struct {
+	int shape;
+	int x;
+	int y;
+	int angle;
+	double tick;
+} game;
 
-void initDisplay(void)
+
+static int last_update;
+
+
+
+void init(void)
 {
 	glClearColor(0, 0, 0, 0); // bg colour
 	gluOrtho2D(0, CELL_SIZE * 10, CELL_SIZE * 20, 0); // viewing area
+}
+
+bool can_move_left(void)
+{
+	if (game.x > 1) 
+		return true;
+	
+	return false;
+}
+
+bool can_move_right(void)
+{
+	if (game.x < NCOL-2) 
+		return true;
+	
+	return false;
+}
+
+bool can_move_down(void)
+{
+	if (game.y < 15)
+		return true;
+	
+	return false;
 }
 
 void draw_cell(int x, int y)
@@ -31,16 +78,47 @@ void draw_cell(int x, int y)
 	glPopMatrix();
 }
 
+
+void on_idle(void)
+{
+	
+	int now = glutGet(GLUT_ELAPSED_TIME);
+
+
+	int elapsed = now - last_update;
+
+	if (elapsed > game.tick * 1000) {
+		if (can_move_down()) {
+			game.y++;
+			last_update = now;
+		}
+		
+	}
+
+	glutPostRedisplay();
+	
+}
+
+
+void process_normal_keys(unsigned char key, int x, int y) 
+{
+	if (key == 27)
+		exit(0);
+}
+
 void process_special_keys(int key, int x, int y)
 {
 	switch (key) {
 	case GLUT_KEY_RIGHT:
-		angle = angle < 3 ? angle + 1 : 0;
+		if (can_move_right())
+			game.x++;
 		break;
 	case GLUT_KEY_LEFT:
-		angle = angle > 0 ? angle - 1 : 3;
+		if (can_move_left())
+			game.x--;
 		break;
 	case GLUT_KEY_UP:
+		game.angle = game.angle < 3 ? game.angle + 1 : 0;
 		break;
 	case GLUT_KEY_DOWN:
 		break;
@@ -48,13 +126,15 @@ void process_special_keys(int key, int x, int y)
 	glutPostRedisplay();
 }
 
-void draw_shape(int type, int angle, int x0, int y0)
+
+
+void draw_shape(int type, int x, int y)
 {
 	glColor3f(1, 0, 0);
 	
 	for (int i = 0; i < 16; i++)
-		if (shape[type][angle] & (0x8000 >> i))
-			draw_cell(x0 + i%4 - 2, y0 + i/4 + 1);	
+		if (shape[type][game.angle] & (0x8000 >> i))
+			draw_cell(x + i%4 - 2, y + i/4 + 1);	
 
 }
 
@@ -62,19 +142,40 @@ void render(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	draw_shape(2, angle, 5, 8);
+	draw_shape(game.shape, game.x, game.y);
 	glutSwapBuffers();
 }
 
 int main(int argc, char **argv)
 {
+	game.angle = 0;
+	game.shape = 1;
+	game.x = 5;
+	game.y = 2;
+	game.tick = 1.0;
+
+	// struct timeval t;
+	// gettimeofday(&t, NULL);
+
+	// last_update = (t.tv_sec - t.tv_sec) * 1000.0;
+	// last_update += (t.tv_usec - t.tv_usec) / 1000.0;
+
+
+	
+
 	glutInit(&argc, argv);
 	glutInitWindowSize(CELL_SIZE * 10, CELL_SIZE * 20);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 	glutCreateWindow("Tetris");
-	initDisplay();
+	init();
 	glutDisplayFunc(render);
+	glutKeyboardFunc(process_normal_keys);
 	glutSpecialFunc(process_special_keys);
+	glutIdleFunc(on_idle);
+
+
+	last_update = glutGet(GLUT_ELAPSED_TIME);
+
 	glutMainLoop();
 	
 	return 0;

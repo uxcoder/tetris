@@ -14,7 +14,7 @@ ifeq ($(UNAME), Darwin)
 endif
 
 ifeq ($(UNAME), Linux)
-	LDFLAGS=-lGL -lglut
+	LDFLAGS=-lGL -lGLU -lglut
 endif
 
 all: 	$(SOURCES)
