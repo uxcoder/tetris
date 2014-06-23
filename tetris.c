@@ -14,6 +14,8 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <sys/time.h>
 
 #include "tetris.h"
 
@@ -42,9 +44,10 @@ static struct {
 } current;
 
 static struct {
-	double tick;
+	bool running;
+	int tick;
 	int last_update;
-	int container[WIDTH * HEIGHT]
+	int container[WIDTH * HEIGHT];
 } game;
 
 
@@ -55,21 +58,18 @@ void block(int action);
 void draw_cell(int x, int y, int i);
 void init(void);
 bool check(int x, int y, int angle);
+void spawn(void);
+void shift(int row);
 
 
 void init(void)
 {
+	srand(time(NULL));
+	
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	gluOrtho2D(0, W, H, 0);
 
-	
-	current.type = 1;
-	current.x = 5;
-	current.y = 0;
-	current.rot = 0;
-	
-	game.tick = 1.0;
-	game.container[66] = 1;
+	game.running = true;
 	game.last_update = glutGet(GLUT_ELAPSED_TIME);
 
 
@@ -82,9 +82,44 @@ void init(void)
 		game.container[WIDTH*i+NCOL+1] = BORDER;
 	}
 
-	block(INSERT);
+	spawn();
+
 }
 
+
+void spawn(void)
+{
+	
+	
+	current.type = rand() % 7;
+	current.x = 4;
+	current.y = -1;
+	current.rot = 0;
+	game.tick = 400;
+
+	if (check(current.x, current.y, current.rot))
+		block(INSERT);
+	else
+		game.running = false;
+	
+
+}
+
+bool full(int row)
+{
+	for (int i = 0; i < NCOL; i++) {
+		if (!game.container[i+1 + row * WIDTH])
+			return false;
+	}
+	return true;
+}
+
+
+void shift(int row)
+{
+	for (int i = 0; i < NCOL; i++)
+		game.container[i+1 + row * WIDTH] = game.container[i+1+(row-1)*WIDTH];
+}
 
 void draw_grid(void)
 {
@@ -153,8 +188,10 @@ void block(int action /* INSERT or REMOVE */)
 }
 
 
-void move(int direction)
+bool move(int direction)
 {
+	bool res = true;
+
 	// TODO use switch case block
 	block(REMOVE);
 	if (direction == LEFT) {
@@ -172,6 +209,8 @@ void move(int direction)
 	else if (direction == DOWN) {
 		if (check(current.x, current.y+1, current.rot)) {
 			current.y++;
+		} else {
+			res = false;	
 		}
 	}
 	else if (direction == ROTATE) {
@@ -182,6 +221,7 @@ void move(int direction)
 	}	
 	
 	block(INSERT);
+	return res;
 }
 
 
@@ -190,9 +230,20 @@ void onidle(void)
 	int now = glutGet(GLUT_ELAPSED_TIME);
 	int elapsed = now - game.last_update;
 
-	if (elapsed > game.tick * 1000) {
-		move(DOWN);
-		game.last_update = now;
+	if (elapsed > game.tick && game.running) {
+		if (move(DOWN)) {
+			game.last_update = now;
+		} else {
+			
+			for (int row = NROW-1; row > 0; row--) {
+				if (full(row)) {
+					for (int i = row; i > 1; i--)
+						shift(i);
+					
+				}
+			}
+			spawn();
+		}
 	}
 	glutPostRedisplay();
 }
@@ -218,6 +269,7 @@ void speckeys(int key, int x, int y)
 		move(ROTATE);
 		break;
 	case GLUT_KEY_DOWN:
+		game.tick = 1;
 		break;
 	}
 	glutPostRedisplay();
