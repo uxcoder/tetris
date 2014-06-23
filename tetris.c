@@ -5,15 +5,14 @@
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
+#include <OpenGL/OpenGL.h>
 #else
 #include <GL/glut.h>
 #include <GL/glu.h>
 #include <GL/gl.h>
 #endif
 
-#include <OpenGL/OpenGL.h>
 #include <stdlib.h>
-#include <sys/time.h>
 #include <stdbool.h>
 
 #include "tetris.h"
@@ -24,154 +23,189 @@
 #define DOWN 3
 #define ROTATE 4
 
-#define INSERT 1
 #define REMOVE 0
+#define INSERT 1
 
+#define BORDER 8
 
+#define WIDTH (NCOL + 2)
+#define HEIGHT (NROW +1)
 
-struct block {
-	int shape;
-	int x;
-	int y;
-	int angle;
-};
+#define W (CELL_SIZE*(NCOL+10))
+#define H (CELL_SIZE*(NROW+4))
 
 static struct {
-	int shape;
+	int type;
 	int x;
 	int y;
-	int angle;
+	int rot;
+} current;
+
+static struct {
 	double tick;
+	int last_update;
+	int container[WIDTH * HEIGHT]
 } game;
 
 
-static int last_update;
-
-static int container[10*20];
 
 
 // prototypes
 void block(int action);
-void draw_cell(int x, int y, int color);
+void draw_cell(int x, int y, int i);
 void init(void);
+bool check(int x, int y, int angle);
 
 
 void init(void)
 {
-	glClearColor(0, 0, 0, 0);
-	gluOrtho2D(0, CELL_SIZE * NCOL, CELL_SIZE * NROW, 0); // viewing area
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	gluOrtho2D(0, W, H, 0);
 
-
-	game.angle = 0;
-	game.shape = 1;
-	game.x = 5;
-	game.y = 2;
+	
+	current.type = 1;
+	current.x = 5;
+	current.y = 0;
+	current.rot = 0;
+	
 	game.tick = 1.0;
+	game.container[66] = 1;
+	game.last_update = glutGet(GLUT_ELAPSED_TIME);
+
+
+	for (int i = 0; i < NCOL; i++) {
+		game.container[WIDTH*(HEIGHT-1)+i+1] = BORDER;
+	}
+
+	for (int i = 0; i < NROW; i++) {
+		game.container[WIDTH*i] = BORDER;
+		game.container[WIDTH*i+NCOL+1] = BORDER;
+	}
+
 	block(INSERT);
+}
+
+
+void draw_grid(void)
+{
+	glColor3f(0.1, 0.1, 0.1);
+	for (int x = 0; x < W; x++)
+		for (int y = 0; y < H; y++) {
+			glBegin(GL_LINES);
+			glVertex2f(x*CELL_SIZE, 0);
+			glVertex2f(x*CELL_SIZE, H*CELL_SIZE);
+			glVertex2f(0, y*CELL_SIZE);
+			glVertex2f(W*CELL_SIZE, y*CELL_SIZE);
+			glEnd();
+		}
 }
 
 
 void draw_cell(int x, int y, int color)
 {
-	switch (color) {
-	case 0: 
-		glColor3f(0, 0, 0);
-		break;
-	case 1: 
-		glColor3f(0, 1, 0);
-		break;	
-	default:
-		glColor3f(1, 1, 1);
-	}
+	unsigned long palette[] = {
+		0x000000, 0xFF0000, 0xFFFF00, 0xFFFFFF, 0x00FF00, 
+		0x0000FF, 0x00FFFF, 0xFF00FF, 0x222222
+	};
+	
+	int xoffset = (x+4) * CELL_SIZE;
+	int yoffset = (y+1) * CELL_SIZE;
+
+	glColor3f((palette[color] >> 16) / 256.0, 
+		  (palette[color] >> 8 & 0xFF) / 256.0, 
+		  (palette[color] & 0xFF) / 265.0);
 
 	glPushMatrix();	
-	glTranslatef(x * CELL_SIZE, y * CELL_SIZE, 0);
+	glTranslatef(xoffset, yoffset, 0);
 	glBegin(GL_QUADS);                      
-		glVertex2f(0, 0);
-		glVertex2f(0, CELL_SIZE);
-		glVertex2f(CELL_SIZE, CELL_SIZE);
-		glVertex2f(CELL_SIZE, 0);
+	glVertex2f(0, 0);
+	glVertex2f(0, CELL_SIZE);
+	glVertex2f(CELL_SIZE, CELL_SIZE);
+	glVertex2f(CELL_SIZE, 0);
     	glEnd(); 	
 	glPopMatrix();
 }
 
+
 void display_container(void)
 {
-	for (int i = 0; i < NCOL * NROW; i++) {
-		draw_cell(i%NCOL, i/NCOL, container[i]);
-	}
+	for (int i = 0; i < WIDTH * HEIGHT; i++)
+		draw_cell(i%WIDTH, i/WIDTH, game.container[i]);
 }
 
-bool check(int direction)
+
+bool check(int x, int y, int rot)
 {
+	for (int i = 0; i < 16; i++)
+		if ((tetra_block[current.type][rot] & (0x8000 >> i))
+			&& game.container[x + i%4 + WIDTH * (y + i/4)])
+			return false;
 	return true;
 }
 
+
 void block(int action /* INSERT or REMOVE */) 
 {
-	int x = game.x;
-	int y = game.y;
-
-	int color = (action == INSERT) ? game.shape + 1 : 0;
-
 	for (int i = 0; i < 16; i++)
-		if (shape[game.shape][game.angle] & (0x8000 >> i))
-			container[x + y*10 + i%4 + (i/4)*10] = color;
+		if (tetra_block[current.type][current.rot] & (0x8000 >> i))
+			game.container[current.x + i%4 + WIDTH * (current.y + i/4)] = 
+				(action == INSERT) ? current.type + 1 : 0;
 }
-
-
 
 
 void move(int direction)
 {
-	if (check(direction)) {
-		block(REMOVE);
-		if (direction == LEFT)
-			game.x--;
-		else if (direction == RIGHT)
-			game.x++;
-		else if (direction == DOWN)
-			game.y++;
-		else if (direction == ROTATE)
-			game.angle = game.angle < 3 ? game.angle + 1 : 0;
-
-		block(INSERT);
+	// TODO use switch case block
+	block(REMOVE);
+	if (direction == LEFT) {
+		if (check(current.x-1, current.y, current.rot)) {
+			current.x--;
+		}
+		
 	}
+	else if (direction == RIGHT) {
+		if (check(current.x+1, current.y, current.rot)) {
+			current.x++;
+		}
+	}
+
+	else if (direction == DOWN) {
+		if (check(current.x, current.y+1, current.rot)) {
+			current.y++;
+		}
+	}
+	else if (direction == ROTATE) {
+		int rot = current.rot < 3 ? current.rot + 1 : 0;
+		if (check(current.x, current.y, rot)) {
+			current.rot = rot;
+		}
+	}	
+	
+	block(INSERT);
 }
 
 
-
-
-
-
-
-void on_idle(void)
+void onidle(void)
 {
-	
 	int now = glutGet(GLUT_ELAPSED_TIME);
-
-
-	int elapsed = now - last_update;
+	int elapsed = now - game.last_update;
 
 	if (elapsed > game.tick * 1000) {
 		move(DOWN);
-		last_update = now;
-		
-		
+		game.last_update = now;
 	}
-
 	glutPostRedisplay();
-	
 }
 
 
-void process_normal_keys(unsigned char key, int x, int y) 
+void normkeys(unsigned char key, int x, int y) 
 {
 	if (key == 27)
 		exit(0);
 }
 
-void process_special_keys(int key, int x, int y)
+
+void speckeys(int key, int x, int y)
 {
 	switch (key) {
 	case GLUT_KEY_RIGHT:
@@ -190,57 +224,26 @@ void process_special_keys(int key, int x, int y)
 }
 
 
-
-
-
-
-void draw_shape(int type, int x, int y)
-{
-	
-	
-	// for (int i = 0; i < 16; i++)
-	// 	if (shape[type][game.angle] & (0x8000 >> i))
-	// 		draw_cell(x + i%4 - 2, y + i/4 + 1);	
-
-}
-
 void render(void) 
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// draw_shape(game.shape, game.x, game.y);
-
-	
 	display_container();
+	draw_grid();
 	glutSwapBuffers();
 }
 
+
 int main(int argc, char **argv)
 {
-	
-
-	// struct timeval t;
-	// gettimeofday(&t, NULL);
-
-	// last_update = (t.tv_sec - t.tv_sec) * 1000.0;
-	// last_update += (t.tv_usec - t.tv_usec) / 1000.0;
-
-
-	
-
 	glutInit(&argc, argv);
-	glutInitWindowSize(CELL_SIZE * 10, CELL_SIZE * 20);
+	glutInitWindowSize(W, H);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 	glutCreateWindow("Tetris");
-	init();
 	glutDisplayFunc(render);
-	glutKeyboardFunc(process_normal_keys);
-	glutSpecialFunc(process_special_keys);
-	glutIdleFunc(on_idle);
-
-
-	last_update = glutGet(GLUT_ELAPSED_TIME);
-
+	glutKeyboardFunc(normkeys);
+	glutSpecialFunc(speckeys);
+	glutIdleFunc(onidle);
+	init();
 	glutMainLoop();
 	
 	return 0;
