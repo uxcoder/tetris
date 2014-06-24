@@ -45,6 +45,8 @@ void init(void);
 bool check(int x, int y, int angle);
 void spawn(void);
 void drop(int row);
+void display_text(float x, float y, const char *string);
+void exitgame(void);
 
 
 void init(void)
@@ -64,14 +66,23 @@ void init(void)
 		game.container[NCOLB * i] = 1;
 		game.container[NCOLB * i + NCOL + 1] = 1;
 	}
-
+	
 	spawn();
-
 }
+
 
 void exitgame(void)
 {
-	free(game.container);
+	display_text(CELL_SIZE*8, CELL_SIZE*10, "GAME OVER");
+}
+
+
+void display_text(float x, float y, const char *string) {
+	int len = strlen(string);
+	glColor3f(0.8, 0.8, 0.8);
+	glRasterPos2f(x, y);
+	for (int i = 0; i < len; i++)
+		glutBitmapCharacter(GLUT_BITMAP_9_BY_15, string[i]);
 }
 
 
@@ -278,8 +289,13 @@ void speckeys(int key, int x, int y)
 void render(void) 
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	display_container();
-	draw_grid();
+	
+	if (game.running) {
+		display_container();
+		draw_grid();
+	} else
+		exitgame();
+	
 	glutSwapBuffers();
 }
 
