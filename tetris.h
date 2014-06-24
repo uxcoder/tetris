@@ -3,7 +3,7 @@
 
 #define NCOL 10
 #define NROW 20
-#define CELL_SIZE 30
+#define CELL_SIZE 20
 #define NROTATIONS 4
 #define NSHAPES 7
 

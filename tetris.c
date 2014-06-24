@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <sys/time.h>
+#include <time.h>
 
 #include "tetris.h"
 
@@ -31,7 +31,7 @@
 #define BORDER 8
 
 #define WIDTH (NCOL + 2)
-#define HEIGHT (NROW +1)
+#define HEIGHT (NROW + 1)
 
 #define W (CELL_SIZE*(NCOL+10))
 #define H (CELL_SIZE*(NROW+4))
@@ -64,7 +64,7 @@ void shift(int row);
 
 void init(void)
 {
-	srand(time(NULL));
+	srandomdev(); 
 	
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	gluOrtho2D(0, W, H, 0);
@@ -89,26 +89,24 @@ void init(void)
 
 void spawn(void)
 {
-	
-	
-	current.type = rand() % 7;
+	current.type = random() % 7;
 	current.x = 4;
 	current.y = -1;
 	current.rot = 0;
-	game.tick = 400;
+	game.tick = 500;
 
 	if (check(current.x, current.y, current.rot))
 		block(INSERT);
 	else
 		game.running = false;
 	
-
 }
+
 
 bool full(int row)
 {
 	for (int i = 0; i < NCOL; i++) {
-		if (!game.container[i+1 + row * WIDTH])
+		if (!game.container[1 + i + row * WIDTH])
 			return false;
 	}
 	return true;
@@ -148,7 +146,7 @@ void draw_cell(int x, int y, int color)
 
 	glColor3f((palette[color] >> 16) / 256.0, 
 		  (palette[color] >> 8 & 0xFF) / 256.0, 
-		  (palette[color] & 0xFF) / 265.0);
+		  (palette[color] & 0xFF) / 256.0);
 
 	glPushMatrix();	
 	glTranslatef(xoffset, yoffset, 0);
@@ -225,6 +223,21 @@ bool move(int direction)
 }
 
 
+int check_lines(void)
+{
+	int lines = 0;
+
+	for (int row = 0; row <= NROW - 1; row++) {
+		if (full(row)) {
+			lines++;
+			for (int i = row; i > 1; i--)
+				shift(i);
+		}
+	}
+	return lines;
+}
+
+
 void onidle(void)
 {
 	int now = glutGet(GLUT_ELAPSED_TIME);
@@ -235,13 +248,7 @@ void onidle(void)
 			game.last_update = now;
 		} else {
 			
-			for (int row = NROW-1; row > 0; row--) {
-				if (full(row)) {
-					for (int i = row; i > 1; i--)
-						shift(i);
-					
-				}
-			}
+			check_lines();
 			spawn();
 		}
 	}
@@ -280,7 +287,7 @@ void render(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	display_container();
-	draw_grid();
+	// draw_grid();
 	glutSwapBuffers();
 }
 
