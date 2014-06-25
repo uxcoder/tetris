@@ -1,6 +1,7 @@
 /*
  * A tetris clone
- *
+ * Copyright (C) 2014 Alexander Ariskin
+ * Copyright (C) 2014 Igor Archipov
  */
 
 #ifdef __APPLE__
@@ -12,49 +13,50 @@
 #include <GL/gl.h>
 #endif
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "tetris.h"
 
 
-static struct tetrablock {
+static struct {
 	int type;
 	int x;
 	int y;
 	int rot;
-};
+} current;
 
 static struct {
 	bool running;
 	int tick;
 	int last_update;
 	int container[NCOLB * NROWB];
-	struct tetrablock block;
-	int stat[7];
+	int stat[NTYPES];
 	int score;
 } game;
 
 
-
-
-// prototypes
-void block(int action);
-void draw_cell(int x, int y, int i);
-void init(void);
-bool check(int x, int y, int angle);
-void spawn(void);
-void drop(int row);
-void settext(float x, float y, const char *string, int color);
-void display_gameover(void);
+int main(int argc, char **argv)
+{
+	glutInit(&argc, argv);
+	glutInitWindowSize(WIDTH, HEIGHT);
+	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
+	glutCreateWindow("Tetris");
+	glutDisplayFunc(render);
+	glutSpecialFunc(speckeys);
+	glutIdleFunc(onidle);
+	init();
+	glutMainLoop();
+	return EXIT_SUCCESS;
+}
 
 
 void init(void)
 {
-	srandomdev(); 
-	
+	srandom(time(NULL)); 
 	glClearColor(0, 0, 0, 0);
 	gluOrtho2D(0, WIDTH, HEIGHT, 0);
 
@@ -73,7 +75,8 @@ void init(void)
 }
 
 
-void settext(float x, float y, const char *string, int color) {
+void settext(float x, float y, const char *string, int color) 
+{
 	int len = strlen(string);
 
 	glColor3f((color >> 16) / 256.0, 
@@ -94,10 +97,9 @@ void display_stat(void)
 	char *blockname = "IJLOSTZ";
 	int lineheight = 18;
 
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < NTYPES; i++) {
 		sprintf(s, "%c%14d", blockname[i], game.stat[i]);
 		settext(x, y + i * lineheight, s, 0x888888);
-
 	}
 
 	x = CELL_SIZE;
@@ -114,22 +116,21 @@ void display_stat(void)
 void spawn(void)
 {
 	
-	game.block.type = random() % 7;
-	game.block.x 	= 4;
-	game.block.y 	= -1;
-	game.block.rot 	= 0;
+	current.type = random() % 7;
+	current.x 	= 4;
+	current.y 	= -1;
+	current.rot 	= 0;
 	game.tick 	= 500;
 
-	game.stat[game.block.type]++;
+	game.stat[current.type]++;
 
-	if (check(game.block.x, game.block.y, game.block.rot)) {
+	if (check(current.x, current.y, current.rot)) {
 		block(INSERT);
 		game.score++;
 	}
 	else {
 		game.running = false;
 	}
-	
 }
 
 
@@ -218,7 +219,7 @@ void display_container(void)
 bool check(int x, int y, int rot)
 {
 	for (int i = 0; i < 16; i++)
-		if ((tblock[game.block.type][rot] & (0x8000 >> i))
+		if ((tblock[current.type][rot] & (0x8000 >> i))
 			&& game.container[x + i % 4 + NCOLB * (y + i / 4)])
 			return false;
 	return true;
@@ -228,10 +229,10 @@ bool check(int x, int y, int rot)
 void block(int action /* INSERT or REMOVE */) 
 {
 	for (int i = 0; i < 16; i++)
-		if (tblock[game.block.type][game.block.rot] & (0x8000 >> i))
-			game.container[game.block.x + i % 4 + 
-				NCOLB * (game.block.y + i / 4)] = 
-				(action == INSERT) ? game.block.type + 1 : 0;
+		if (tblock[current.type][current.rot] & (0x8000 >> i))
+			game.container[current.x + i % 4 + 
+				NCOLB * (current.y + i / 4)] = 
+				(action == INSERT) ? current.type + 1 : 0;
 }
 
 
@@ -241,28 +242,28 @@ bool move(int direction)
 
 	block(REMOVE);
 	if (direction == LEFT) {
-		if (check(game.block.x-1, game.block.y, game.block.rot)) {
-			game.block.x--;
+		if (check(current.x-1, current.y, current.rot)) {
+			current.x--;
 		}
 		
 	}
 	else if (direction == RIGHT) {
-		if (check(game.block.x+1, game.block.y, game.block.rot)) {
-			game.block.x++;
+		if (check(current.x+1, current.y, current.rot)) {
+			current.x++;
 		}
 	}
 
 	else if (direction == DOWN) {
-		if (check(game.block.x, game.block.y+1, game.block.rot)) {
-			game.block.y++;
+		if (check(current.x, current.y+1, current.rot)) {
+			current.y++;
 		} else {
 			res = false;	
 		}
 	}
 	else if (direction == ROTATE) {
-		int rot = game.block.rot < 3 ? game.block.rot + 1 : 0;
-		if (check(game.block.x, game.block.y, rot)) {
-			game.block.rot = rot;
+		int rot = current.rot < 3 ? current.rot + 1 : 0;
+		if (check(current.x, current.y, rot)) {
+			current.rot = rot;
 		}
 	}	
 	
@@ -298,13 +299,6 @@ void onidle(void)
 }
 
 
-void normkeys(unsigned char key, int x, int y) 
-{
-	if (key == 27)
-		exit(0);
-}
-
-
 void speckeys(int key, int x, int y)
 {
 	switch (key) {
@@ -328,32 +322,9 @@ void speckeys(int key, int x, int y)
 void render(void) 
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
 	display_container();
 	draw_grid();
 	display_stat();
-
 	glutSwapBuffers();
 }
-
-
-int main(int argc, char **argv)
-{
-	glutInit(&argc, argv);
-	glutInitWindowSize(WIDTH, HEIGHT);
-	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-	glutCreateWindow("Tetris");
-	glutDisplayFunc(render);
-	glutKeyboardFunc(normkeys);
-	glutSpecialFunc(speckeys);
-	glutIdleFunc(onidle);
-	init();
-	glutMainLoop();
-	
-	return EXIT_SUCCESS;
-}
-
-
-
-
 

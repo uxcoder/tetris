@@ -5,6 +5,8 @@
 #define NROW 		20
 #define NCOLB 		(NCOL + 2) // Add borders left and right
 #define NROWB 		(NROW + 1) // Additinal border at the bottom
+#define NTYPES		7
+#define NCELLS          16
 #define CELL_SIZE 	20
 #define MARGIN_LEFT	(CELL_SIZE * 10)
 #define MARGIN_RIGHT	(CELL_SIZE * 10)
@@ -32,4 +34,24 @@ int tblock[7][4] = {
 	{0x0630, 0x1320, 0x0630, 0x1320}  /* Z */
 };
 
+// prototypes
+void init(void);
+void settext(float x, float y, const char *string, int color);
+void display_stat(void);
+void spawn(void);
+bool full(int row);
+void drop(int row);
+void draw_grid(void);
+void draw_cell(int x, int y, int i);
+void display_container(void);
+bool check(int x, int y, int angle);
+void block(int action);
+bool move(int direction);
+void check_lines(void);
+void onidle(void);
+void speckeys(int key, int x, int y);
+void render(void); 
+
 #endif
+
+

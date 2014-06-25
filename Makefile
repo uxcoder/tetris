@@ -3,7 +3,7 @@
 UNAME := $(shell uname)
 
 CC=gcc
-CFLAGS=-std=c99 -Wall
+CFLAGS=-std=c99 -Wall -D_BSD_SOURCE
 LDFLAGS=
 SOURCES=tetris.c
 EXECUTABLE=tetris
