@@ -6,8 +6,12 @@
 #define NCOLB 		(NCOL + 2) // Add borders left and right
 #define NROWB 		(NROW + 1) // Additinal border at the bottom
 #define CELL_SIZE 	20
-#define WIDTH		(CELL_SIZE * (NCOL + 10))
-#define HEIGHT	 	(CELL_SIZE * (NROW + 4))
+#define MARGIN_LEFT	(CELL_SIZE * 10)
+#define MARGIN_RIGHT	(CELL_SIZE * 10)
+#define MARGIN_TOP	(CELL_SIZE * 2)
+#define MARGIN_BOTTOM	(CELL_SIZE * 2)
+#define WIDTH		(CELL_SIZE * NCOL + MARGIN_LEFT + MARGIN_RIGHT)
+#define HEIGHT	 	(CELL_SIZE * NROW + MARGIN_TOP + MARGIN_BOTTOM)
 	
 #define LEFT 		1
 #define RIGHT 		2

@@ -33,6 +33,8 @@ static struct {
 	int last_update;
 	int container[NCOLB * NROWB];
 	struct tetrablock block;
+	int stat[7];
+	int score;
 } game;
 
 
@@ -45,8 +47,8 @@ void init(void);
 bool check(int x, int y, int angle);
 void spawn(void);
 void drop(int row);
-void display_text(float x, float y, const char *string);
-void exitgame(void);
+void settext(float x, float y, const char *string, int color);
+void display_gameover(void);
 
 
 void init(void)
@@ -71,18 +73,41 @@ void init(void)
 }
 
 
-void exitgame(void)
-{
-	display_text(CELL_SIZE*8, CELL_SIZE*10, "GAME OVER");
+void settext(float x, float y, const char *string, int color) {
+	int len = strlen(string);
+
+	glColor3f((color >> 16) / 256.0, 
+		  ((color >> 8) & 0xFF) / 256.0, 
+		  (color & 0xFF) / 256.0);
+
+	glRasterPos2f(x, y);
+	for (int i = 0; i < len; i++)
+		glutBitmapCharacter(GLUT_BITMAP_8_BY_13, string[i]);
 }
 
 
-void display_text(float x, float y, const char *string) {
-	int len = strlen(string);
-	glColor3f(0.8, 0.8, 0.8);
-	glRasterPos2f(x, y);
-	for (int i = 0; i < len; i++)
-		glutBitmapCharacter(GLUT_BITMAP_9_BY_15, string[i]);
+void display_stat(void)
+{
+	char s[80];
+	int x = MARGIN_LEFT + NCOLB * CELL_SIZE;
+	int y = MARGIN_TOP + CELL_SIZE;
+	char *blockname = "IJLOSTZ";
+	int lineheight = 18;
+
+	for (int i = 0; i < 7; i++) {
+		sprintf(s, "%c%14d", blockname[i], game.stat[i]);
+		settext(x, y + i * lineheight, s, 0x888888);
+
+	}
+
+	x = CELL_SIZE;
+
+	sprintf(s, "%s%10d", "level", 1);
+	settext(x, y, s, 0xFFFFFF);
+
+	sprintf(s, "%s%10d", "score", game.score);
+	settext(x, y + lineheight, s, 0xFFFFFF);
+
 }
 
 
@@ -95,11 +120,14 @@ void spawn(void)
 	game.block.rot 	= 0;
 	game.tick 	= 500;
 
-	if (check(game.block.x, game.block.y, game.block.rot))
+	game.stat[game.block.type]++;
+
+	if (check(game.block.x, game.block.y, game.block.rot)) {
 		block(INSERT);
+		game.score++;
+	}
 	else {
 		game.running = false;
-		exitgame();
 	}
 	
 }
@@ -111,6 +139,7 @@ bool full(int row)
 		if (!game.container[1 + i + row * NCOLB])
 			return false;
 	}
+	game.score += 10;
 	return true;
 }
 
@@ -122,25 +151,35 @@ void drop(int row)
 			game.container[1 + i + (row - 1) * NCOLB];
 }
 
+
 void draw_grid(void)
 {
-	glColor3f(0.1, 0.1, 0.1);
-	int xoffset = 5 * CELL_SIZE;
-	int yoffset = 1 * CELL_SIZE;
+	glColor3f(0.15, 0.15, 0.15);
+	
 	glPushMatrix();	
-	glTranslatef(xoffset, yoffset, 0);
-	for (int x = 0; x <= NCOL; x++) {
+	glTranslatef(MARGIN_LEFT, MARGIN_TOP, 0);
+	for (int x = 1; x < NCOL; x++) {
 		glBegin(GL_LINES);
 		glVertex2f(x * CELL_SIZE, 0);
 		glVertex2f(x * CELL_SIZE, NROW * CELL_SIZE);
 		glEnd();
 	}
-	for (int y = 0; y <= NROW; y++) {
+	for (int y = 1; y < NROW; y++) {
 		glBegin(GL_LINES);
 		glVertex2f(0, y * CELL_SIZE);
 		glVertex2f(NCOL * CELL_SIZE, y * CELL_SIZE);
 		glEnd();
 	}
+	
+	glColor3f(0.5, 0.5, 0.5);
+	
+	glBegin(GL_LINE_LOOP);
+	glVertex2f(0, 0);
+	glVertex2f(NCOL * CELL_SIZE, 0);
+	glVertex2f(NCOL * CELL_SIZE, NROW * CELL_SIZE);
+	glVertex2f(0, NROW * CELL_SIZE);
+	glEnd();
+
 	glPopMatrix();
 }
 
@@ -148,20 +187,20 @@ void draw_grid(void)
 void draw_cell(int x, int y, int color)
 {
 	unsigned long palette[] = {
-		0x000000, 0xFF0000, 0xFFFF00, 0xFFFFFF, 
-		0x00FF00, 0x0000FF, 0x00FFFF, 0xFF00FF
+		0x000000, 0xF50C54, 0xE29714, 0xCFCFCF, 
+		0x3AA663, 0x0C8CF9, 0x18D8E9, 0xCD3BB7
 	};
 	
-	int xoffset = (x+4) * CELL_SIZE;
-	int yoffset = (y+1) * CELL_SIZE;
-
+	int xoffset = MARGIN_LEFT + (x - 1) * CELL_SIZE;
+	int yoffset = MARGIN_TOP + y * CELL_SIZE;
+	
 	glColor3f((palette[color] >> 16) / 256.0, 
 		  (palette[color] >> 8 & 0xFF) / 256.0, 
 		  (palette[color] & 0xFF) / 256.0);
 
 	glPushMatrix();	
 	glTranslatef(xoffset, yoffset, 0);
-	glRectf(0.0f, 0.0f, CELL_SIZE, CELL_SIZE);
+	glRectf(0, 0, CELL_SIZE, CELL_SIZE);
 	glPopMatrix();
 }
 
@@ -290,12 +329,10 @@ void render(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	if (game.running) {
-		display_container();
-		draw_grid();
-	} else
-		exitgame();
-	
+	display_container();
+	draw_grid();
+	display_stat();
+
 	glutSwapBuffers();
 }
 
