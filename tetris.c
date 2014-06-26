@@ -35,6 +35,9 @@ static struct {
 	int last_update;
 	int container[NCOLB * NROWB];
 	int stat[NTYPES];
+	int fallsteps;
+	int fulllines;
+	int level;
 	int score;
 } game;
 
@@ -61,6 +64,9 @@ void init(void)
 	gluOrtho2D(0, WIDTH, HEIGHT, 0);
 
 	game.running = true;
+	game.fulllines = 0;
+	game.level = 1;
+	game.score = 0;
 	game.last_update = glutGet(GLUT_ELAPSED_TIME);
 
 	for (int i = 0; i < NCOL; i++)
@@ -104,7 +110,7 @@ void display_stat(void)
 
 	x = CELL_SIZE;
 
-	sprintf(s, "%s%10d", "level", 1);
+	sprintf(s, "%s%10d", "level", game.level);
 	settext(x, y, s, 0xFFFFFF);
 
 	sprintf(s, "%s%10d", "score", game.score);
@@ -117,16 +123,17 @@ void spawn(void)
 {
 	
 	current.type = random() % 7;
-	current.x 	= 4;
-	current.y 	= -1;
-	current.rot 	= 0;
-	game.tick 	= 500;
+	current.x 	 = 4;
+	current.y 	 = -1;
+	current.rot  = 0;
+	
+	game.tick 	 = (11 - game.level) * 50;
+	game.fallsteps = 0;
 
 	game.stat[current.type]++;
 
 	if (check(current.x, current.y, current.rot)) {
 		block(INSERT);
-		game.score++;
 	}
 	else {
 		game.running = false;
@@ -140,7 +147,6 @@ bool full(int row)
 		if (!game.container[1 + i + row * NCOLB])
 			return false;
 	}
-	game.score += 10;
 	return true;
 }
 
@@ -275,9 +281,13 @@ bool move(int direction)
 void check_lines(void)
 {
 	for (int row = 0; row < NROW; row++)
-		if (full(row))
+		if (full(row)) {
 			for (int i = row; i > 1; i--)
 				drop(i);
+			game.fulllines++;
+			game.level = ((game.fulllines >= 1) && (game.fulllines <= 90)) ?
+				1 + ((game.fulllines - 1) / 10) : 10;
+		}
 }
 
 
@@ -289,8 +299,10 @@ void onidle(void)
 	if (elapsed > game.tick && game.running) {
 		if (move(DOWN)) {
 			game.last_update = now;
-		} else {
-			
+			if (game.tick != 1) game.fallsteps++;
+		} 
+		else {
+			game.score += 21 + 3 * game.level - game.fallsteps;
 			check_lines();
 			spawn();
 		}
