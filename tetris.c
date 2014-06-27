@@ -24,6 +24,7 @@
 
 static struct {
 	int type;
+	int after;
 	int x;
 	int y;
 	int rot;
@@ -38,7 +39,7 @@ static struct {
 	int fallsteps;
 	int fulllines;
 	int level;
-	int score;
+	unsigned int score;
 } game;
 
 
@@ -77,6 +78,7 @@ void init(void)
 		game.container[NCOLB * i + NCOL + 1] = 1;
 	}
 	
+	current.after = random() % 7;
 	spawn();
 }
 
@@ -110,24 +112,30 @@ void display_stat(void)
 
 	x = CELL_SIZE;
 
-	sprintf(s, "%s%10d", "level", game.level);
-	settext(x, y, s, 0xFFFFFF);
+	sprintf(s, "%s%10c", "next ", blockname[current.after]);
+	settext(x, y, s, 0xFF0000);
 
 	sprintf(s, "%s%10d", "score", game.score);
 	settext(x, y + lineheight, s, 0xFFFFFF);
 
+	sprintf(s, "%s%10d", "lines", game.fulllines);
+	settext(x, y + 2 * lineheight, s, 0xFFFFFF);
+
+	sprintf(s, "%s%10d", "level", game.level);
+	settext(x, y + 3 * lineheight, s, 0xFFFFFF);
 }
 
 
 void spawn(void)
 {
+	current.type = current.after;
+	current.after = random() % 7;
+
+	current.x = 4;
+	current.y = -1;
+	current.rot = 0;
 	
-	current.type = random() % 7;
-	current.x 	 = 4;
-	current.y 	 = -1;
-	current.rot  = 0;
-	
-	game.tick 	 = (11 - game.level) * 50;
+	game.tick = (11 - game.level) * 50;
 	game.fallsteps = 0;
 
 	game.stat[current.type]++;
@@ -339,4 +347,3 @@ void render(void)
 	display_stat();
 	glutSwapBuffers();
 }
-

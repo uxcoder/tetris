@@ -6,7 +6,7 @@
 #define NCOLB 		(NCOL + 2) // Add borders left and right
 #define NROWB 		(NROW + 1) // Additinal border at the bottom
 #define NTYPES		7
-#define NCELLS          16
+#define NCELLS      16
 #define CELL_SIZE 	20
 #define MARGIN_LEFT	(CELL_SIZE * 10)
 #define MARGIN_RIGHT	(CELL_SIZE * 10)
@@ -53,5 +53,3 @@ void speckeys(int key, int x, int y);
 void render(void); 
 
 #endif
-
-
