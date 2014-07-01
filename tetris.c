@@ -29,6 +29,7 @@ static unsigned long palette[] = {
 
 static struct {
 	int type;
+	int after;
 	int x;
 	int y;
 	int rot;
@@ -43,7 +44,10 @@ static struct {
 	int fallsteps;
 	int fulllines;
 	int level;
+<<<<<<< HEAD
 	int nexttype;
+=======
+>>>>>>> 18355114cf62fde0a8991381a3c3a06b1dc5cb0c
 	unsigned int score;
 } game;
 
@@ -83,7 +87,11 @@ void init(void)
 		game.container[NCOLB * i + NCOL + 1] = 1;
 	}
 	
+<<<<<<< HEAD
 	game.nexttype = random() % 7;
+=======
+	current.after = random() % 7;
+>>>>>>> 18355114cf62fde0a8991381a3c3a06b1dc5cb0c
 	spawn();
 }
 
@@ -122,9 +130,14 @@ void display_stat(void)
 
 	x = CELL_SIZE;
 
+<<<<<<< HEAD
 	sprintf(s, "%s", "next");
 	settext(x, y, s, 0xFFFFFF);
 	draw_preview(x + 105, y - 15, game.nexttype);
+=======
+	sprintf(s, "%s%10c", "next ", blockname[current.after]);
+	settext(x, y, s, 0xFF0000);
+>>>>>>> 18355114cf62fde0a8991381a3c3a06b1dc5cb0c
 
 	sprintf(s, "%s%10d", "score", game.score);
 	settext(x, y + lineheight, s, 0xFFFFFF);
@@ -134,16 +147,24 @@ void display_stat(void)
 
 	sprintf(s, "%s%10d", "level", game.level);
 	settext(x, y + 3 * lineheight, s, 0xFFFFFF);
+<<<<<<< HEAD
 
 
 	
+=======
+>>>>>>> 18355114cf62fde0a8991381a3c3a06b1dc5cb0c
 }
 
 
 void spawn(void)
 {
+<<<<<<< HEAD
 	current.type = game.nexttype;
 	game.nexttype = random() % 7;
+=======
+	current.type = current.after;
+	current.after = random() % 7;
+>>>>>>> 18355114cf62fde0a8991381a3c3a06b1dc5cb0c
 
 	current.x = 4;
 	current.y = -1;

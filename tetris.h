@@ -1,6 +1,7 @@
 #ifndef __TETRIS_H
 #define __TETRIS_H
 
+<<<<<<< HEAD
 #define NCOL 			10
 #define NROW 			20
 #define NCOLB 			(NCOL + 2) // Add borders left and right
@@ -9,6 +10,16 @@
 #define NCELLS      	16
 #define CELL_SIZE 		20
 #define MARGIN_LEFT		(CELL_SIZE * 10)
+=======
+#define NCOL 		10
+#define NROW 		20
+#define NCOLB 		(NCOL + 2) // Add borders left and right
+#define NROWB 		(NROW + 1) // Additinal border at the bottom
+#define NTYPES		7
+#define NCELLS      16
+#define CELL_SIZE 	20
+#define MARGIN_LEFT	(CELL_SIZE * 10)
+>>>>>>> 18355114cf62fde0a8991381a3c3a06b1dc5cb0c
 #define MARGIN_RIGHT	(CELL_SIZE * 10)
 #define MARGIN_TOP		(CELL_SIZE * 2)
 #define MARGIN_BOTTOM	(CELL_SIZE * 2)
