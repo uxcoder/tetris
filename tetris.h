@@ -1,27 +1,27 @@
 #ifndef __TETRIS_H
 #define __TETRIS_H
 
-#define NCOL 		10
-#define NROW 		20
-#define NCOLB 		(NCOL + 2) // Add borders left and right
-#define NROWB 		(NROW + 1) // Additinal border at the bottom
-#define NTYPES		7
-#define NCELLS          16
-#define CELL_SIZE 	20
-#define MARGIN_LEFT	(CELL_SIZE * 10)
+#define NCOL 			10
+#define NROW 			20
+#define NCOLB 			(NCOL + 2) // Add borders left and right
+#define NROWB 			(NROW + 1) // Additinal border at the bottom
+#define NTYPES			7
+#define NCELLS      	16
+#define CELL_SIZE 		20
+#define MARGIN_LEFT		(CELL_SIZE * 10)
 #define MARGIN_RIGHT	(CELL_SIZE * 10)
-#define MARGIN_TOP	(CELL_SIZE * 2)
+#define MARGIN_TOP		(CELL_SIZE * 2)
 #define MARGIN_BOTTOM	(CELL_SIZE * 2)
-#define WIDTH		(CELL_SIZE * NCOL + MARGIN_LEFT + MARGIN_RIGHT)
-#define HEIGHT	 	(CELL_SIZE * NROW + MARGIN_TOP + MARGIN_BOTTOM)
+#define WIDTH			(CELL_SIZE * NCOL + MARGIN_LEFT + MARGIN_RIGHT)
+#define HEIGHT	 		(CELL_SIZE * NROW + MARGIN_TOP + MARGIN_BOTTOM)
 	
-#define LEFT 		1
-#define RIGHT 		2
-#define DOWN 		3
-#define ROTATE 		4
+#define LEFT 			1
+#define RIGHT 			2
+#define DOWN 			3
+#define ROTATE 			4	
 
-#define REMOVE 		0
-#define INSERT 		1
+#define REMOVE 			0
+#define INSERT 			1
 
 
 int tblock[7][4] = {
@@ -51,7 +51,7 @@ void check_lines(void);
 void onidle(void);
 void speckeys(int key, int x, int y);
 void render(void); 
+void glColorHex(int color);
+void draw_preview(int x, int y, int type);
 
 #endif
-
-

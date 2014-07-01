@@ -22,6 +22,11 @@
 #include "tetris.h"
 
 
+static unsigned long palette[] = {
+		0x000000, 0xEEEAEC, 0xAD657D, 0x80B67B, 
+		0x859DC6, 0xFFBF0D, 0xED1F24, 0x3B99FC
+	};
+
 static struct {
 	int type;
 	int x;
@@ -38,7 +43,8 @@ static struct {
 	int fallsteps;
 	int fulllines;
 	int level;
-	int score;
+	int nexttype;
+	unsigned int score;
 } game;
 
 
@@ -77,7 +83,16 @@ void init(void)
 		game.container[NCOLB * i + NCOL + 1] = 1;
 	}
 	
+	game.nexttype = random() % 7;
 	spawn();
+}
+
+
+void glColorHex(int color)
+{
+	glColor3f((color >> 16) / 256.0, 
+		  ((color >> 8) & 0xFF) / 256.0, 
+		  (color & 0xFF) / 256.0);	
 }
 
 
@@ -85,10 +100,7 @@ void settext(float x, float y, const char *string, int color)
 {
 	int len = strlen(string);
 
-	glColor3f((color >> 16) / 256.0, 
-		  ((color >> 8) & 0xFF) / 256.0, 
-		  (color & 0xFF) / 256.0);
-
+	glColorHex(color);
 	glRasterPos2f(x, y);
 	for (int i = 0; i < len; i++)
 		glutBitmapCharacter(GLUT_BITMAP_8_BY_13, string[i]);
@@ -110,34 +122,42 @@ void display_stat(void)
 
 	x = CELL_SIZE;
 
-	sprintf(s, "%s%10d", "level", game.level);
+	sprintf(s, "%s", "next");
 	settext(x, y, s, 0xFFFFFF);
+	draw_preview(x + 105, y - 15, game.nexttype);
 
 	sprintf(s, "%s%10d", "score", game.score);
 	settext(x, y + lineheight, s, 0xFFFFFF);
 
+	sprintf(s, "%s%10d", "lines", game.fulllines);
+	settext(x, y + 2 * lineheight, s, 0xFFFFFF);
+
+	sprintf(s, "%s%10d", "level", game.level);
+	settext(x, y + 3 * lineheight, s, 0xFFFFFF);
+
+
+	
 }
 
 
 void spawn(void)
 {
+	current.type = game.nexttype;
+	game.nexttype = random() % 7;
+
+	current.x = 4;
+	current.y = -1;
+	current.rot = 0;
 	
-	current.type = random() % 7;
-	current.x 	 = 4;
-	current.y 	 = -1;
-	current.rot  = 0;
-	
-	game.tick 	 = (11 - game.level) * 50;
+	game.tick = (11 - game.level) * 50;
 	game.fallsteps = 0;
 
 	game.stat[current.type]++;
 
-	if (check(current.x, current.y, current.rot)) {
+	if (check(current.x, current.y, current.rot))
 		block(INSERT);
-	}
-	else {
+	else
 		game.running = false;
-	}
 }
 
 
@@ -193,21 +213,36 @@ void draw_grid(void)
 
 void draw_cell(int x, int y, int color)
 {
-	unsigned long palette[] = {
-		0x000000, 0xF50C54, 0xE29714, 0xCFCFCF, 
-		0x3AA663, 0x0C8CF9, 0x18D8E9, 0xCD3BB7
-	};
+	
 	
 	int xoffset = MARGIN_LEFT + (x - 1) * CELL_SIZE;
 	int yoffset = MARGIN_TOP + y * CELL_SIZE;
 	
-	glColor3f((palette[color] >> 16) / 256.0, 
-		  (palette[color] >> 8 & 0xFF) / 256.0, 
-		  (palette[color] & 0xFF) / 256.0);
-
+	glColorHex(palette[color]);
+	
 	glPushMatrix();	
 	glTranslatef(xoffset, yoffset, 0);
 	glRectf(0, 0, CELL_SIZE, CELL_SIZE);
+	glPopMatrix();
+}
+
+
+void draw_preview(int x, int y, int type)
+{
+	float xx, yy;
+	int size = 5;
+
+	glColorHex(palette[type+1]);
+	glPushMatrix();	
+	glTranslatef(x, y, 0);
+
+	for (int i = 0; i < 16; i++)
+		if ((tblock[type][0] & (0x8000 >> i))) {
+			xx = (i % 4) * size;
+			yy = (i / 4) * size;
+			glRectf(xx, yy, xx + size, yy + size);	
+		}
+
 	glPopMatrix();
 }
 
@@ -339,4 +374,3 @@ void render(void)
 	display_stat();
 	glutSwapBuffers();
 }
-
